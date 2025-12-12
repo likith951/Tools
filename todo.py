@@ -4,13 +4,18 @@ from tkinter import font
 from datetime import datetime
 
 
-
 window = tk.Tk()
 Tasks=[]
 TimeStamps=[]
 pos=[]
 btncolors=[]
-##
+def apply(checkbox,textarea,Taskbtn,Scolor,editwin):
+    otext=checkbox.cget("text")
+    checkbox.config(text=textarea.get("1.0",tk.END).strip())
+    Tasks[Tasks.index(otext)] = textarea.get("1.0",tk.END).strip()
+    btncolors[Tasks.index(checkbox.cget("text"))] = Scolor.get()
+    Taskbtn.config(bg=Scolor.get())
+    editwin.destroy()
 def writeData():
     file=open("todo.txt", "r")
     lines=file.readlines()
@@ -23,11 +28,6 @@ def writeData():
         newtask(frames,btns,text,time,p,color)
     file.close()
 
-def editText(checkbox):
-    otext=checkbox.cget("text")
-    print("triggred")
-    checkbox.config(text=text.get())
-    Tasks[Tasks.index(otext)]=text.get()
 def getout(frame,checkbox,timestamp,TaskFrame):
     Tasks.remove(checkbox.cget("text"))
     TimeStamps.remove(timestamp.cget("text"))
@@ -35,9 +35,6 @@ def getout(frame,checkbox,timestamp,TaskFrame):
     TaskFrame.destroy()
 
 
-def changeColor(btn,checkbox):
-    btncolors[Tasks.index(checkbox.cget("text"))]="red"
-    btn.config(bg="red")
 def checked(cb):
     f = font.Font(font=cb.cget("font"))
     temp=f.actual("overstrike")
@@ -48,15 +45,43 @@ def checked(cb):
 
     cb.configure(font=f)
 
-def edit(menu,btn):
-    x=btn.winfo_rootx()
-    y=btn.winfo_rooty()
-    menu.tk_popup(x,y)
+def edit(Taskbtn,checkbox):
+    editwin=tk.Toplevel(window)
+    editwin.title("Edit")
+    editwin.geometry("300x200")
+    editwin.resizable(0,0)
+    bottomframe = tk.Frame(editwin, height=40)
+    bottomframe.pack(side="bottom", fill="x", expand=1)
+    applybtn = tk.Button(bottomframe, text="Apply")
+    applybtn.pack(side=tk.LEFT,expand=1,padx=5,pady=5,fill="both")
+    colors=["red","yellow","blue"]
+    color=tk.StringVar()
+    color.set(btncolors[Tasks.index(checkbox.cget("text"))])
+    colorpicker=tk.OptionMenu(bottomframe,color, *colors)
+    colorpicker.pack(side=tk.LEFT,expand=1,padx=5,pady=5)
+    discardbtn = tk.Button(bottomframe, text="Discard")
+    discardbtn.pack(side=tk.LEFT,expand=1,padx=5,pady=5,fill="both")
+    startfocus = tk.Button(bottomframe, text="Start")
+    startfocus.pack(side=tk.RIGHT,expand=1,padx=5,pady=5,fill="both")
+    mainFrame=tk.Frame(editwin)
+    mainFrame.pack(side="top",expand=1)
+    textarea=tk.Text(mainFrame)
+    textarea.pack(fill=tk.BOTH)
+    taskText=checkbox.cget("text")
+    textarea.insert(tk.INSERT,taskText)
+
+    #config func
+    applybtn.configure(command=partial(apply, checkbox,textarea,Taskbtn,color,editwin))
+    discardbtn.config(command=editwin.destroy)
+    #focusFrame=tk.Frame(editwin)
+    editwin.grab_set()  # Makes the modal window "modal"
+    window.wait_window(editwin)
+
 
 def get_time():
     i=btns.index(get_button(btns))
     if i==0:
-        return str(datetime.now().strftime("%H:%M"))
+        return str(datetime.now().strftime("%I:%M%p"))
     else:
         return str(datetime.now().strftime("%b %d"))
 
@@ -85,12 +110,8 @@ def newtask(frames,btns,text,Time=None,i=None,color="#3498db"):
     checkBox.pack(side=tk.LEFT, fill=tk.BOTH,anchor=tk.N)
     timeStamp.pack(side=tk.LEFT, fill=tk.BOTH,anchor=tk.N)
     editbtn.pack(side=tk.RIGHT, fill=tk.BOTH,anchor=tk.N)
-    editMenu=tk.Menu(TaskFrame,tearoff=0)
-    editMenu.add_command(label="Edit Text",command=partial(editText,checkBox))
-    editMenu.add_command(label="Change Color",command=partial(changeColor,editbtn,checkBox))
-    editMenu.add_command(label="Delete",command=partial(getout,frame,checkBox,timeStamp,TaskFrame))
     TaskFrame.pack(side=tk.TOP, fill=tk.BOTH,anchor=tk.N)
-    editbtn.config(command=partial(edit,editMenu,editbtn))
+    editbtn.config(command=partial(edit,editbtn,checkBox))
     checkBox.config(command=partial(checked, checkBox))
     ##storing data for writing
     Tasks.append(checkBox.cget("text"))
@@ -116,6 +137,7 @@ text.pack(side="left", fill="x", padx=1, pady=3,expand=True)
 ##adding tabs
 tab_bar=tk.Frame(window, bg="white",height=40)
 tab_bar.pack(side="top", fill="x")
+
 ##daily Tasks
 dayButton=tk.Button(tab_bar,text="Daily",bg="#00c853",fg="white",font=("Arial", 11, "bold"))
 dayButton.pack(side="left",expand=True,fill="both")
