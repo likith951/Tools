@@ -13,18 +13,44 @@ TimeStamps=[]
 pos=[]
 btncolors=[]
 c_vars=[]
+PRIORITY = {
+    "red": 0,
+    "yellow": 1,
+    "blue": 2
+}
 
 
+def repack(Scolor, TaskFrame, checkbox):
+    if hasattr(Scolor, "get"):
+        Scolor = Scolor.get()
+    else:
+        Scolor = Scolor
+    parent = TaskFrame.master
 
-def repack(Scolor):
-    pass
-def apply(checkbox,textarea,Taskbtn,Scolor,editwin,TaskFrame):
+
+    tasks_in_frame = parent.winfo_children()
+
+    idx = Tasks.index(checkbox.cget("text"))
+    btncolors[idx] = Scolor
+
+    def priority(task_frame):
+        btn = task_frame.winfo_children()[-1]  # edit button
+        return PRIORITY.get(btn.cget("bg"))
+
+    tasks_in_frame.sort(key=priority)
+
+    # repack in sorted order
+    for task in tasks_in_frame:
+        task.pack_forget()
+        task.pack(side=tk.TOP, fill=tk.BOTH, anchor=tk.N)
+
+def apply(checkbox,textarea,Taskbtn,Scolor,editwin,taskframe,event=None):
     otext=checkbox.cget("text")
     checkbox.config(text=textarea.get("1.0",tk.END).strip())
     Tasks[Tasks.index(otext)] = textarea.get("1.0",tk.END).strip()
     btncolors[Tasks.index(checkbox.cget("text"))] = Scolor.get()
     Taskbtn.config(bg=Scolor.get())
-    #repack(Scolor,TaskFrame)
+    repack(Scolor,taskframe,checkbox)
     editwin.destroy()
 def writeData():
     file=open("todo.txt", "r")
@@ -49,7 +75,7 @@ def getout(editwin,frame,checkbox,timestamp,TaskFrame):
 
 def checked(cb):
     f = font.Font(font=cb.cget("font"))
-    idx = Tasks.index(cb.cget("text"))
+    #idx = Tasks.index(cb.cget("text"))
     if f.actual("overstrike") == 0:
         f.configure(overstrike=1)
         #c_vars[idx]=1
@@ -59,7 +85,7 @@ def checked(cb):
     cb.configure(font=f)
 
 
-def edit(Taskbtn,frame,checkBox,timeStamp,TaskFrame):
+def edit(Taskbtn,frame,checkBox,timeStamp,TaskFrame,btn):
     editwin=tk.Toplevel(window)
     editwin.title("Edit")
     editwin.geometry("300x200")
@@ -86,7 +112,7 @@ def edit(Taskbtn,frame,checkBox,timeStamp,TaskFrame):
     focusFrame=tk.Frame(editwin)
     focusFrame.pack(side="top",expand=1)
     #config func
-    applybtn.configure(command=partial(apply, checkBox,textarea,Taskbtn,color,editwin,TaskFrame))
+    applybtn.configure(command=partial(apply, checkBox,textarea,Taskbtn,color,editwin,TaskFrame,btn))
     discardbtn.config(command=editwin.destroy)
     deletebtn.config(command=partial(getout, editwin,frame,checkBox,timeStamp,TaskFrame))
     #focusFrame=tk.Frame(editwin)
@@ -118,6 +144,8 @@ def newtask(frames,btns,text,Time=None,i=None,color="blue",checked_state=0):
         time=Time
         btn=btns[i]
         frame=frames[i]
+    if Text=="":
+        return
     ###AddingCheckBoxes:
     c_var = tk.IntVar(value=checked_state)
     TaskFrame=tk.Frame(frame,bg="#888888")
@@ -128,7 +156,7 @@ def newtask(frames,btns,text,Time=None,i=None,color="blue",checked_state=0):
     timeStamp.pack(side=tk.LEFT, fill=tk.BOTH,anchor=tk.N)
     editbtn.pack(side=tk.RIGHT, fill=tk.BOTH,anchor=tk.N)
     TaskFrame.pack(side=tk.TOP, fill=tk.BOTH,anchor=tk.N)
-    editbtn.config(command=partial(edit,editbtn,frame,checkBox,timeStamp,TaskFrame))
+    editbtn.config(command=partial(edit,editbtn,frame,checkBox,timeStamp,TaskFrame,editbtn))
     checkBox.config(command=partial(checked, checkBox))
     ##storing data for writing
     Tasks.append(checkBox.cget("text"))
@@ -136,9 +164,9 @@ def newtask(frames,btns,text,Time=None,i=None,color="blue",checked_state=0):
     btncolors.append(editbtn.cget("bg"))
     pos.append(str(frames.index(frame)))
     c_vars.append(c_var)
-    TaskFrams.append(TaskFrame)
     if checked_state==1:
         checked(checkBox)
+    repack(color,TaskFrame,checkBox)
 def tabMange(btns,frames,i):
     for j in range(len(btns)):
         btns[j].config(relief=tk.RAISED,bg="#007acc")
