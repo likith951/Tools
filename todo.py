@@ -1,7 +1,10 @@
 import tkinter as tk
 from functools import partial
 from tkinter import font
+import time
 from datetime import datetime
+
+
 
 
 window = tk.Tk()
@@ -9,12 +12,19 @@ Tasks=[]
 TimeStamps=[]
 pos=[]
 btncolors=[]
-def apply(checkbox,textarea,Taskbtn,Scolor,editwin):
+c_vars=[]
+
+
+
+def repack(Scolor):
+    pass
+def apply(checkbox,textarea,Taskbtn,Scolor,editwin,TaskFrame):
     otext=checkbox.cget("text")
     checkbox.config(text=textarea.get("1.0",tk.END).strip())
     Tasks[Tasks.index(otext)] = textarea.get("1.0",tk.END).strip()
     btncolors[Tasks.index(checkbox.cget("text"))] = Scolor.get()
     Taskbtn.config(bg=Scolor.get())
+    #repack(Scolor,TaskFrame)
     editwin.destroy()
 def writeData():
     file=open("todo.txt", "r")
@@ -24,28 +34,32 @@ def writeData():
         p=int(temp[0])
         text=temp[1]
         time=temp[2]
-        color = temp[3].strip() if len(temp) > 3 and temp[3].strip() else "#3498db"
-        newtask(frames,btns,text,time,p,color)
+        color = temp[3].strip() if len(temp) > 3 and temp[3].strip() else "blue"
+        checked_state = int(temp[4].strip())
+        newtask(frames,btns,text,time,p,color,checked_state)
     file.close()
 
-def getout(frame,checkbox,timestamp,TaskFrame):
+def getout(editwin,frame,checkbox,timestamp,TaskFrame):
     Tasks.remove(checkbox.cget("text"))
     TimeStamps.remove(timestamp.cget("text"))
     pos.remove(str(frames.index(frame)))
     TaskFrame.destroy()
+    editwin.destroy()
 
 
 def checked(cb):
     f = font.Font(font=cb.cget("font"))
-    temp=f.actual("overstrike")
-    if temp==0:
+    idx = Tasks.index(cb.cget("text"))
+    if f.actual("overstrike") == 0:
         f.configure(overstrike=1)
+        #c_vars[idx]=1
     else:
         f.configure(overstrike=0)
-
+        #c_vars[idx]=0
     cb.configure(font=f)
 
-def edit(Taskbtn,checkbox):
+
+def edit(Taskbtn,frame,checkBox,timeStamp,TaskFrame):
     editwin=tk.Toplevel(window)
     editwin.title("Edit")
     editwin.geometry("300x200")
@@ -56,23 +70,25 @@ def edit(Taskbtn,checkbox):
     applybtn.pack(side=tk.LEFT,expand=1,padx=5,pady=5,fill="both")
     colors=["red","yellow","blue"]
     color=tk.StringVar()
-    color.set(btncolors[Tasks.index(checkbox.cget("text"))])
+    color.set(btncolors[Tasks.index(checkBox.cget("text"))])
     colorpicker=tk.OptionMenu(bottomframe,color, *colors)
     colorpicker.pack(side=tk.LEFT,expand=1,padx=5,pady=5)
     discardbtn = tk.Button(bottomframe, text="Discard")
     discardbtn.pack(side=tk.LEFT,expand=1,padx=5,pady=5,fill="both")
-    startfocus = tk.Button(bottomframe, text="Start")
-    startfocus.pack(side=tk.RIGHT,expand=1,padx=5,pady=5,fill="both")
+    deletebtn = tk.Button(bottomframe, text="Delete")
+    deletebtn.pack(side=tk.LEFT,expand=1,padx=5,pady=5,fill="both")
     mainFrame=tk.Frame(editwin)
     mainFrame.pack(side="top",expand=1)
     textarea=tk.Text(mainFrame)
     textarea.pack(fill=tk.BOTH)
-    taskText=checkbox.cget("text")
+    taskText=checkBox.cget("text")
     textarea.insert(tk.INSERT,taskText)
-
+    focusFrame=tk.Frame(editwin)
+    focusFrame.pack(side="top",expand=1)
     #config func
-    applybtn.configure(command=partial(apply, checkbox,textarea,Taskbtn,color,editwin))
+    applybtn.configure(command=partial(apply, checkBox,textarea,Taskbtn,color,editwin,TaskFrame))
     discardbtn.config(command=editwin.destroy)
+    deletebtn.config(command=partial(getout, editwin,frame,checkBox,timeStamp,TaskFrame))
     #focusFrame=tk.Frame(editwin)
     editwin.grab_set()  # Makes the modal window "modal"
     window.wait_window(editwin)
@@ -89,7 +105,7 @@ def get_button(btns):
     for btn in btns:
         if btn['relief'] == tk.FLAT:
             return btn
-def newtask(frames,btns,text,Time=None,i=None,color="#3498db"):
+def newtask(frames,btns,text,Time=None,i=None,color="blue",checked_state=0):
     ##Genarilizing for writing:
     if hasattr(text,'get'):
         Text=text.get()
@@ -103,21 +119,26 @@ def newtask(frames,btns,text,Time=None,i=None,color="#3498db"):
         btn=btns[i]
         frame=frames[i]
     ###AddingCheckBoxes:
+    c_var = tk.IntVar(value=checked_state)
     TaskFrame=tk.Frame(frame,bg="#888888")
-    checkBox = tk.Checkbutton(TaskFrame, text=Text,justify=tk.LEFT,bg="#888888",font=("Segoe UI", 10))
+    checkBox = tk.Checkbutton(TaskFrame, text=Text,variable=c_var,onvalue=1,offvalue=0,justify=tk.LEFT,bg="#888888",font=("Segoe UI", 10))
     timeStamp = tk.Label(TaskFrame, text=time,justify=tk.LEFT,bg="#888888",font=("Consolas", 9))
-    editbtn=tk.Button(TaskFrame,justify=tk.RIGHT,bg=color)##
+    editbtn=tk.Button(TaskFrame,justify=tk.RIGHT,bg=color)
     checkBox.pack(side=tk.LEFT, fill=tk.BOTH,anchor=tk.N)
     timeStamp.pack(side=tk.LEFT, fill=tk.BOTH,anchor=tk.N)
     editbtn.pack(side=tk.RIGHT, fill=tk.BOTH,anchor=tk.N)
     TaskFrame.pack(side=tk.TOP, fill=tk.BOTH,anchor=tk.N)
-    editbtn.config(command=partial(edit,editbtn,checkBox))
+    editbtn.config(command=partial(edit,editbtn,frame,checkBox,timeStamp,TaskFrame))
     checkBox.config(command=partial(checked, checkBox))
     ##storing data for writing
     Tasks.append(checkBox.cget("text"))
     TimeStamps.append(timeStamp.cget("text"))
     btncolors.append(editbtn.cget("bg"))
     pos.append(str(frames.index(frame)))
+    c_vars.append(c_var)
+    TaskFrams.append(TaskFrame)
+    if checked_state==1:
+        checked(checkBox)
 def tabMange(btns,frames,i):
     for j in range(len(btns)):
         btns[j].config(relief=tk.RAISED,bg="#007acc")
@@ -125,6 +146,8 @@ def tabMange(btns,frames,i):
         if j==i:
             btns[j].config(relief=tk.FLAT,bg="#00c853")
             frames[j].pack()
+
+#########Window
 window.title("To-dos")
 window.geometry("300x500")
 window.configure(bg="#1e1e1e")
@@ -177,7 +200,7 @@ window.mainloop()
 
 ###Writing
 file=open("todo.txt", "w")
-
+c_vals=c_vars
 for i in range(0,len(TimeStamps)):
-    file.write(pos[i]+"\0"+Tasks[i]+"\0"+TimeStamps[i]+"\0"+btncolors[i]+"\n")
+    file.write(pos[i]+"\0"+Tasks[i]+"\0"+TimeStamps[i]+"\0"+btncolors[i]+"\0"+str(c_vals[i].get())+"\n")
 file.close()
