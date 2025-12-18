@@ -1,11 +1,7 @@
 import tkinter as tk
 from functools import partial
 from tkinter import font
-import time
 from datetime import datetime
-
-
-
 
 window = tk.Tk()
 Tasks=[]
@@ -34,7 +30,7 @@ def repack(Scolor, TaskFrame, checkbox):
     btncolors[idx] = Scolor
 
     def priority(task_frame):
-        btn = task_frame.winfo_children()[-1]  # edit button
+        btn = task_frame.winfo_children()[-1]
         return PRIORITY.get(btn.cget("bg"))
 
     tasks_in_frame.sort(key=priority)
@@ -60,7 +56,7 @@ def writeData():
         p=int(temp[0])
         text=temp[1]
         time=temp[2]
-        color = temp[3].strip() if len(temp) > 3 and temp[3].strip() else "blue"
+        color = temp[3].strip()
         checked_state = int(temp[4].strip())
         newtask(frames,btns,text,time,p,color,checked_state)
     file.close()
